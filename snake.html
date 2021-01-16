@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title> Snake </title>
+    <style>
+        body {
+            margin: 0px;
+            padding: 0px;
+
+        }
+        #main {
+            margin:100px;
+        }
+        .btn{
+            width:100px;
+            height:40px;
+        }
+        .gtitle{
+            font-size: 25px;
+            font-weight: bold;
+            padding: 10px;
+        }
+
+        #gnum{
+            color:red;
+
+        }
+    </style>
+
+</head>
+<body>
+<div id="main">
+    <h1>The Snake Game - by Weijia</h1>
+    <input class="btn" type="button" value="start game" id="begin">
+    <input class="btn" type="button" value="pause game" id="pause">
+    <span class="gtitle"> Level <span id="gnum">1</span> </span>
+
+    <script>
+            var main = document.getElementById("main");
+            var showcanvas=true;
+            /**
+             * object Map
+             */
+            function Map(atom,xnum,ynum){
+                this.atom=atom; //an atom is a pixel grid, of same width & height, 20x20
+                this.xnum=xnum; //xnum of atoms in a row, width is 40x20 
+                this.ynum=ynum; //xnum of atoms in a column, height is 20x20
+
+                this.canvas=null;
+                //function to create a canvas, which is a div
+                this.create = function(){
+                    this.canvas=document.createElement('div');
+                    this.canvas.style.cssText="position:relative;top:40px;border:1px solid darkred;background:#FAFAFA;";
+                    this.canvas.style.width=this.atom*this.xnum+'px';
+                    this.canvas.style.height=this.atom*this.ynum+'px';
+                    main.appendChild(this.canvas); //append canvas to div main
+
+                    if(showcanvas){
+                        for(var y=0; y<ynum; y++){
+                            for(var x=0; x<xnum; x++){
+                            var a = document.createElement('div');
+                            a.style.cssText="border:1px solid yellow";
+                            a.style.width=this.atom+'px';
+                            a.style.height=this.atom+'px';
+                            a.style.backgroundColor="green";
+                            this.canvas.appendChild(a);
+                            a.style.position='absolute';
+                            a.style.left=x*this.atom+'px';
+                            a.style.top=y*this.atom+'px';
+                            }
+                        }
+
+                    }
+
+                }
+            }
+
+            function Food(map){
+                this.width=map.atom;
+                this.height=map.atom;
+                this.bgcolor="rgb("+Math.floor(Math.random()*200)+","+Math.floor(Math.random()*200)+","+Math.floor(Math.random()*200)+" )";
+                this.x=Math.floor(Math.random()*map.xnum);
+                this.y=Math.floor(Math.random()*map.ynum);
+
+                this.flag=document.createElement('div'); //新建一个标记flag，便于添加删除
+                this.flag.style.width=this.width+'px';
+                this.flag.style.height=this.height+'px';
+                this.flag.style.backgroundColor=this.bgcolor;
+                this.flag.style.borderRadius='50%'; //make it a circle
+                this.flag.style.position='absolute';
+                this.flag.style.left=this.x*this.width+'px';
+                this.flag.style.top=this.y*this.height+'px';
+
+                map.canvas.appendChild(this.flag);
+
+
+
+            }
+
+            function Snake(map){
+                this.width=map.atom;
+                this.height=map.atom;
+                //direction by default
+                this.direction='right';
+                this.body=[
+                    {x:2, y:0}, //head
+                    {x:1, y:0}, //neck
+                    {x:0, y:0}, //tail
+                ];
+                //显示🐍
+                this.display=function(){
+                    for(var i=0; i<this.body.length; i++){//当吃到食物的时候，x==null，不能新建，不然会在0，0处新建
+                        if(this.body[i].x!=null){
+                            var s = document.createElement('div');
+                            this.body[i].flag = s; //将节点保存到一个状态变量中，以便之后删除使用
+
+                            //设置🐍的样式
+                            s.style.width=this.width+'px';
+                            s.style.height=this.height+'px';
+                            s.style.backgroundColor="rgb("+Math.floor(Math.random()*200)+","+Math.floor(Math.random()*200)+","+Math.floor(Math.random()*200)+" )";
+
+                            //set position
+                            s.style.position='absolute';
+                            s.style.left = this.body[i].x * this.width + 'px';
+                            s.style.top = this.body[i].y * this.height + 'px';
+
+                            //add it to the map
+                            map.canvas.appendChild(s);
+                        }
+                    }
+
+                }
+
+                //make snake move ~~~
+                this.run=function(){
+                    /*
+                    example: if we only change x
+                    {x:2, y:0}, //head
+                    {x:1, y:0}, //neck
+                    {x:0, y:0}, //tail
+
+                    {x:2, y:0}, //head
+                    {x:1, y:0}, //neck
+                    {x:1, y:0}, //tail moves a step forward (把neck的值赋值给tail)
+
+                    {x:2, y:0}, //head
+                    {x:2, y:0}, //neck moves a step forward (把head的值赋值给neck)
+                    {x:0, y:0}, //tail
+
+                    this.body[0].x += 1; //head moves a step forward (to the right)
+                    */
+                    for(var i=this.body.length-1; i>0; i--){ //从后往前遍历
+                        this.body[i].x=this.body[i-1].x;
+                        this.body[i].y=this.body[i-1].y;
+                    }
+
+                    //change direction of the head
+                    switch(this.direction){
+                        case "left": this.body[0].x -= 1; break;
+                        case "right": this.body[0].x += 1; break;
+                        case "up": this.body[0].y -= 1; break;
+                        case "down": this.body[0].y += 1; break;
+
+                    }
+
+                    //check if head "eats" food, i.e. head's xy same w/ food's XY
+                    if(this.body[0].x == food.x && this.body[0].y == food.y){
+                        //add one grid to snake's body, on its tail
+                        this.body.push({x:null, y:null, flag: null}); //因为body是一个数组，所以用push
+
+                        //check if pass this level
+                        if (this.body.length>l.slength) {
+                            l.set();
+                        }
+                        //在下一次循环中，null被之前的节点赋值，且因为flag为null，不会被删除
+                        map.canvas.removeChild(food.flag);
+                        food = new Food(map);
+
+                    }
+
+                    //check if head out of boundaries
+                    if(this.body[0].x<0 || this.body[0].x > map.xnum-1 || this.body[0].y<0 || this.body[0].y > map.ynum-1){
+                        clearInterval(timer); //清楚定时器
+                        alert("Game Over! You have hit the wall!");
+                        restart(map, this);
+                        return false;
+                    }
+
+                    //check if "eats itself"
+                    for (var i=4; i<this.body.length; i++){
+                        if (this.body[0].x == this.body[i].x && this.body[0].y == this.body[i].y){
+                            clearInterval(timer); //清楚定时器
+                            alert("Oh no！You have eaten yourself!");
+                            restart(map, this);
+                            return false;
+                        }
+                    }
+
+                    for (var i=0; i<this.body.length; i++){
+                        if (this.body[i].flag != null) { //当吃到食物，flag会等于null，且不能删除, 所以吃到食物以后body会多出来一节 
+                            map.canvas.removeChild(this.body[i].flag);
+                        }
+                    }
+
+                    this.display();
+
+                }
+
+            }
+
+            //restart game function
+            function restart(map, snake){
+                for(var i=0; i<snake.body.length; i++) {
+                    map.canvas.removeChild(snake.body[i].flag);
+
+                } //remove the old snake
+
+                snake.body=[
+                    {x:2, y:0}, //head
+                    {x:1, y:0}, //neck
+                    {x:0, y:0}, //tail
+                ]; //initialize the body
+                
+                snake.direction = "right";
+                snake.display();
+
+
+
+
+            }
+            function Level(){
+                this.num=1;
+                this.speed=300; //ms, 20ms less each time, faster speed
+                this.slength=6; //have to reach certain length each level to pass
+
+                this.set = function(){
+                    this.num++;
+                    if(this.speed<=50){
+                        this.speed=50;
+                    }else{
+                    this.speed-=50;
+                    }
+                    this.slength+=3;
+                    this.display();
+                    start();
+
+                }
+                this.display= function(){
+                    document.getElementById('gnum').innerHTML = this.num;
+
+                }
+
+
+            }
+            var l = new Level();
+            l.display();
+
+            var map = new Map(20, 40, 20);
+            map.create(); //canvas
+            var food = new Food(map); //create food object 
+            var snake = new Snake(map);
+            snake.display();
+
+            window.onkeydown = function(e) {
+                var event = e || window.event; //如果存在event,那么var e=event;而如果不存在event，那么var e=window.event, 实现浏览器兼容
+                //console.log(event.keyCode) //to print keycode
+                switch(event.keyCode) {
+                    case 38:
+                        if(snake.direction != "down") { //cannot turn back
+                        snake.direction="up";
+                        }
+                        break;
+                    case 40:
+                        if(snake.direction != "up") {
+                        snake.direction="down";
+                        }
+                        break;
+                    case 37:
+                        if(snake.direction != "right") {
+                        snake.direction="left";
+                        }
+                        break;
+                    case 39:
+                        if(snake.direction != "left") {
+                        snake.direction="right";
+                        }
+                        break;
+
+                }
+
+            }
+
+
+            var timer; //声明一个定时器，变量可以提升，在上面不管声明什么样的程序都可以使用这个变量
+            //调用开始按钮
+            function start(){
+                clearInterval(timer); //clear old timers before start to make sure 
+                                    //timers aren't repeatedly started on every click
+                timer=setInterval(function(){
+                    snake.run();//每300ms调用一次run方法
+                }, l.speed); //每300ms运行一次
+
+            }
+            document.getElementById('begin').onclick=function(){
+                start();
+            }
+
+            document.getElementById('pause').onclick=function(){
+                clearInterval(timer);
+            }
+    </script>
+</div>
+
+</body>
+</html>
